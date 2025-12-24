@@ -1,9 +1,14 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
+import { useAuth } from "../../context/AuthContext";
+import Button from "../../components/ui/Button";
+import Input from "../../components/ui/Input";
 
 export default function LoginForm() {
+  const { login } = useAuth();
   const navigate = useNavigate();
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -13,13 +18,11 @@ export default function LoginForm() {
     setLoading(true);
 
     try {
-      // TEMP: simulate backend login
-      await new Promise((res) => setTimeout(res, 1000));
-
+      await login(email, password);
       toast.success("Login successful");
       navigate("/home");
     } catch (err) {
-      toast.error("Invalid credentials");
+      toast.error(err.message || "Login failed");
     } finally {
       setLoading(false);
     }
@@ -27,31 +30,23 @@ export default function LoginForm() {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
-      <input
+      <Input
+        label="Email"
         type="email"
-        placeholder="Email"
-        required
         value={email}
         onChange={(e) => setEmail(e.target.value)}
-        className="w-full rounded-lg border px-4 py-3 focus:ring-2 focus:ring-blue-500"
       />
 
-      <input
+      <Input
+        label="Password"
         type="password"
-        placeholder="Password"
-        required
         value={password}
         onChange={(e) => setPassword(e.target.value)}
-        className="w-full rounded-lg border px-4 py-3 focus:ring-2 focus:ring-blue-500"
       />
 
-      <button
-        type="submit"
-        disabled={loading}
-        className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-lg font-semibold transition"
-      >
-        {loading ? "Signing in..." : "Sign In"}
-      </button>
+      <Button loading={loading} className="w-full">
+        Sign In
+      </Button>
     </form>
   );
 }
