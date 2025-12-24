@@ -10,8 +10,6 @@ export const registerSockets = (io) => {
 
     registerWaitingSocket(io, socket);
     registerChatSocket(io, socket);
-
-    // 🎥 mediasoup
     registerMediaHandlers(io, socket);
   });
 };
