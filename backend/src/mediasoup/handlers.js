@@ -8,7 +8,7 @@ export const registerMediaHandlers = (io, socket) => {
   socket.consumers = [];
 
   /**
-   * RTP Capabilities
+   * Get RTP Capabilities
    */
   socket.on("media:getRtpCapabilities", async ({ roomId }, cb) => {
     const router = await getOrCreateRouter(roomId);
@@ -34,12 +34,13 @@ export const registerMediaHandlers = (io, socket) => {
     async ({ transportId, dtlsParameters }) => {
       const transport = socket.transports.find((t) => t.id === transportId);
       if (!transport) return;
+
       await transport.connect({ dtlsParameters });
     }
   );
 
   /**
-   * PRODUCE (audio/video)
+   * PRODUCE (audio / camera video)
    */
   socket.on(
     "media:produce",
@@ -47,13 +48,16 @@ export const registerMediaHandlers = (io, socket) => {
       const transport = socket.transports.find((t) => t.id === transportId);
       if (!transport) return;
 
-      const producer = await transport.produce({ kind, rtpParameters });
+      const producer = await transport.produce({
+        kind,
+        rtpParameters,
+      });
+
       socket.producers.push(producer);
 
       const roomState = getRoomState(roomId);
       roomState.producers.set(producer.id, producer);
 
-      // notify others
       socket.to(roomId).emit("media:newProducer", {
         producerId: producer.id,
         kind,
@@ -67,6 +71,57 @@ export const registerMediaHandlers = (io, socket) => {
       cb({ producerId: producer.id });
     }
   );
+
+  /**
+   * PRODUCE SCREEN SHARE (video only)
+   */
+  socket.on(
+    "media:produceScreen",
+    async ({ roomId, transportId, rtpParameters }, cb) => {
+      const transport = socket.transports.find((t) => t.id === transportId);
+      if (!transport) return;
+
+      const producer = await transport.produce({
+        kind: "video",
+        rtpParameters,
+        appData: { type: "screen" },
+      });
+
+      socket.producers.push(producer);
+
+      const roomState = getRoomState(roomId);
+      roomState.producers.set(producer.id, producer);
+
+      socket.to(roomId).emit("media:screenStarted", {
+        producerId: producer.id,
+      });
+
+      producer.on("transportclose", () => {
+        producer.close();
+        roomState.producers.delete(producer.id);
+      });
+
+      cb({ producerId: producer.id });
+    }
+  );
+
+  /**
+   * STOP SCREEN SHARE (self or force stop)
+   */
+  socket.on("media:stopScreen", async ({ roomId, producerId }) => {
+    const roomState = getRoomState(roomId);
+
+    const producer =
+      socket.producers.find((p) => p.id === producerId) ||
+      roomState.producers.get(producerId);
+
+    if (!producer) return;
+
+    producer.close();
+    roomState.producers.delete(producerId);
+
+    io.to(roomId).emit("media:screenStopped", { producerId });
+  });
 
   /**
    * CONSUME
@@ -117,6 +172,7 @@ export const registerMediaHandlers = (io, socket) => {
   socket.on("media:resume", async ({ consumerId }) => {
     const consumer = socket.consumers.find((c) => c.id === consumerId);
     if (!consumer) return;
+
     await consumer.resume();
   });
 
