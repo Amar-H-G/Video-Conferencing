@@ -1,6 +1,7 @@
 import Room from "../models/Room.model.js";
 import Participant from "../models/Participant.model.js";
 import { ROOM_STATES, ROLES } from "../utils/constants.js";
+import { cleanupRoomMedia } from "../mediasoup/cleanup.js";
 
 /**
  * Host creates a room
@@ -119,12 +120,10 @@ export const endMeeting = async (req, res, next) => {
       return res.status(404).json({ message: "Room not found" });
     }
 
-    if (room.host.toString() !== req.user.id) {
-      return res.status(403).json({ message: "Only host can end meeting" });
-    }
-
-    room.state = ROOM_STATES.ENDED;
+    room.state = "ended";
     await room.save();
+
+    cleanupRoomMedia(roomId);
 
     res.json({ success: true, state: room.state });
   } catch (err) {
