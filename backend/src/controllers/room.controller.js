@@ -45,7 +45,7 @@ export const createRoom = async (req, res, next) => {
 };
 
 /**
- * Join room (waiting/public logic)
+ * Join room (public / private / lock / auto-admit logic)
  */
 export const joinRoom = async (req, res, next) => {
   try {
@@ -65,7 +65,11 @@ export const joinRoom = async (req, res, next) => {
       return res.json({ success: true, status: "already_joined" });
     }
 
-    const approved = room.isPublic;
+    // ✅ FINAL approval logic (doc compliant)
+    const approved =
+      room.isPublic === true &&
+      room.autoAdmit === true &&
+      room.isLocked === false;
 
     participant = await Participant.create({
       room: roomId,
