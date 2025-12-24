@@ -1,16 +1,11 @@
 import Participant from "../models/Participant.model.js";
-import Room from "../models/Room.model.js";
-import { ROLES } from "../utils/constants.js";
+import { socketGuard } from "./helpers/guard.js";
 
 export const registerWaitingSocket = (io, socket) => {
   /**
-   * User requests to join (private room)
+   * User requests to join waiting room
    */
   socket.on("waiting:join", async ({ roomId }) => {
-    const room = await Room.findById(roomId);
-    if (!room) return;
-
-    // notify host/co-hosts
     io.to(roomId).emit("waiting:new-user", {
       userId: socket.user.id,
       roomId,
@@ -18,48 +13,30 @@ export const registerWaitingSocket = (io, socket) => {
   });
 
   /**
-   * Host / Co-host approves user
+   * Approve user (HOST / CO-HOST only)
    */
-  socket.on("waiting:approve", async ({ roomId, userId }) => {
-    const approver = await Participant.findOne({
-      room: roomId,
-      user: socket.user.id,
-    });
+  socket.on("waiting:approve", (payload) =>
+    socketGuard("APPROVE_USER", async (io, socket, { roomId, userId }) => {
+      const participant = await Participant.findOneAndUpdate(
+        { room: roomId, user: userId },
+        { approved: true, joinedAt: new Date() },
+        { new: true }
+      );
 
-    if (!approver || ![ROLES.HOST, ROLES.CO_HOST].includes(approver.role)) {
-      return;
-    }
+      if (!participant) return;
 
-    const participant = await Participant.findOneAndUpdate(
-      { room: roomId, user: userId },
-      { approved: true, joinedAt: new Date() },
-      { new: true }
-    );
-
-    if (!participant) return;
-
-    io.to(roomId).emit("waiting:approved", {
-      userId,
-    });
-  });
+      io.to(roomId).emit("waiting:approved", { userId });
+    })(io, socket, payload)
+  );
 
   /**
-   * Host / Co-host rejects user
+   * Reject user (HOST / CO-HOST only)
    */
-  socket.on("waiting:reject", async ({ roomId, userId }) => {
-    const approver = await Participant.findOne({
-      room: roomId,
-      user: socket.user.id,
-    });
+  socket.on("waiting:reject", (payload) =>
+    socketGuard("REJECT_USER", async (io, socket, { roomId, userId }) => {
+      await Participant.deleteOne({ room: roomId, user: userId });
 
-    if (!approver || ![ROLES.HOST, ROLES.CO_HOST].includes(approver.role)) {
-      return;
-    }
-
-    await Participant.deleteOne({ room: roomId, user: userId });
-
-    io.to(roomId).emit("waiting:rejected", {
-      userId,
-    });
-  });
+      io.to(roomId).emit("waiting:rejected", { userId });
+    })(io, socket, payload)
+  );
 };
