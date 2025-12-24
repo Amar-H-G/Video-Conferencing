@@ -4,6 +4,8 @@ import { registerMediaHandlers } from "../mediasoup/handlers.js";
 import { registerModerationSocket } from "./moderation.socket.js";
 import { registerRoleSocket } from "./role.socket.js";
 import { registerRoomSettingsSocket } from "./roomSettings.socket.js";
+import { registerChatModerationSocket } from "./chatModeration.socket.js";
+
 import {
   markDisconnected,
   clearReconnect,
@@ -33,6 +35,7 @@ export const registerSockets = (io) => {
     registerModerationSocket(io, socket);
     registerRoleSocket(io, socket);
     registerRoomSettingsSocket(io, socket);
+    registerChatModerationSocket(io, socket);
 
     socket.on("disconnect", async () => {
       const rooms = [...socket.rooms].filter((r) => r !== socket.id);

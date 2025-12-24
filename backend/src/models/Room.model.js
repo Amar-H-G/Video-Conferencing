@@ -38,6 +38,8 @@ const roomSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
+    chatEnabled: { type: Boolean, default: true },
+    chatReadOnly: { type: Boolean, default: false },
   },
   { timestamps: true }
 );
