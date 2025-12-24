@@ -9,6 +9,7 @@ import { createServer } from "http";
 import { connectDB } from "./config/db.js";
 import { initSocket } from "./config/socket.js";
 import { errorHandler } from "./middlewares/error.middleware.js";
+import authRoutes from "./routes/auth.routes.js";
 
 const app = express();
 
@@ -21,6 +22,9 @@ app.use(
 );
 app.use(express.json());
 app.use(cookieParser());
+
+// Routes
+app.use("/api/auth", authRoutes);
 
 /* routes */
 app.get("/health", (_, res) => {
