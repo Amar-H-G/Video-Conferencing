@@ -10,6 +10,7 @@ import { connectDB } from "./config/db.js";
 import { initSocket } from "./config/socket.js";
 import { errorHandler } from "./middlewares/error.middleware.js";
 import authRoutes from "./routes/auth.routes.js";
+import roomRoutes from "./routes/room.routes.js";
 
 const app = express();
 
@@ -25,6 +26,7 @@ app.use(cookieParser());
 
 // Routes
 app.use("/api/auth", authRoutes);
+app.use("/api/rooms", roomRoutes);
 
 /* routes */
 app.get("/health", (_, res) => {
