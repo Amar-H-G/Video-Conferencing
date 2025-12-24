@@ -51,6 +51,10 @@ export const registerMediaHandlers = (io, socket) => {
       const producer = await transport.produce({
         kind,
         rtpParameters,
+        appData: {
+          userId: socket.user.id,
+          type: "camera",
+        },
       });
 
       socket.producers.push(producer);
@@ -84,7 +88,10 @@ export const registerMediaHandlers = (io, socket) => {
       const producer = await transport.produce({
         kind: "video",
         rtpParameters,
-        appData: { type: "screen" },
+        appData: {
+          userId: socket.user.id,
+          type: "screen",
+        },
       });
 
       socket.producers.push(producer);
