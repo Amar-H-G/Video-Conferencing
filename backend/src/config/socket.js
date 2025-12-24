@@ -1,5 +1,6 @@
 import { Server } from "socket.io";
 import { socketAuthMiddleware } from "../middlewares/socketAuth.middleware.js";
+import { registerSockets } from "../sockets/index.js";
 
 export let io;
 
@@ -11,13 +12,11 @@ export const initSocket = (httpServer) => {
     },
   });
 
+  // 🔐 JWT authentication for sockets
   io.use(socketAuthMiddleware);
 
-  io.on("connection", (socket) => {
-    console.log("🔌 Socket connected:", socket.id);
+  // 🔌 Centralized socket connection & feature handlers
+  registerSockets(io);
 
-    socket.on("disconnect", () => {
-      console.log("❌ Socket disconnected:", socket.id);
-    });
-  });
+  console.log("✅ Socket.IO initialized");
 };
