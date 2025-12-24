@@ -2,6 +2,7 @@ import Room from "../models/Room.model.js";
 import Participant from "../models/Participant.model.js";
 import { ROOM_STATES, ROLES } from "../utils/constants.js";
 import { cleanupRoomMedia } from "../mediasoup/cleanup.js";
+import { logModeration } from "../services/moderationLog.service.js";
 
 /**
  * Host creates a room
@@ -44,7 +45,7 @@ export const createRoom = async (req, res, next) => {
 };
 
 /**
- * Join room (waiting/public logic later)
+ * Join room (waiting/public logic)
  */
 export const joinRoom = async (req, res, next) => {
   try {
@@ -102,6 +103,13 @@ export const startMeeting = async (req, res, next) => {
     room.state = ROOM_STATES.LIVE;
     await room.save();
 
+    // 🔍 Audit log
+    await logModeration({
+      roomId,
+      action: "MEETING_STARTED",
+      actorId: req.user.id,
+    });
+
     res.json({ success: true, state: room.state });
   } catch (err) {
     next(err);
@@ -120,10 +128,18 @@ export const endMeeting = async (req, res, next) => {
       return res.status(404).json({ message: "Room not found" });
     }
 
-    room.state = "ended";
+    room.state = ROOM_STATES.ENDED;
     await room.save();
 
+    // cleanup mediasoup + in-memory state
     cleanupRoomMedia(roomId);
+
+    // 🔍 Audit log
+    await logModeration({
+      roomId,
+      action: "MEETING_ENDED",
+      actorId: req.user.id,
+    });
 
     res.json({ success: true, state: room.state });
   } catch (err) {

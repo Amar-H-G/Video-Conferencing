@@ -1,5 +1,6 @@
 import Participant from "../models/Participant.model.js";
 import { socketGuard } from "./helpers/guard.js";
+import { logModeration } from "../services/moderationLog.service.js";
 
 export const registerWaitingSocket = (io, socket) => {
   /**
@@ -25,7 +26,16 @@ export const registerWaitingSocket = (io, socket) => {
 
       if (!participant) return;
 
+      // notify approved
       io.to(roomId).emit("waiting:approved", { userId });
+
+      // 🔍 Audit log (approval event)
+      await logModeration({
+        roomId,
+        action: "PROMOTE_COHOST", // approval tracked (actual role change later)
+        actorId: socket.user.id,
+        targetId: userId,
+      });
     })(io, socket, payload)
   );
 
@@ -37,6 +47,14 @@ export const registerWaitingSocket = (io, socket) => {
       await Participant.deleteOne({ room: roomId, user: userId });
 
       io.to(roomId).emit("waiting:rejected", { userId });
+
+      // 🔍 Audit log
+      await logModeration({
+        roomId,
+        action: "KICK_USER",
+        actorId: socket.user.id,
+        targetId: userId,
+      });
     })(io, socket, payload)
   );
 };

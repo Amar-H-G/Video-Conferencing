@@ -13,6 +13,7 @@ import authRoutes from "./routes/auth.routes.js";
 import roomRoutes from "./routes/room.routes.js";
 import messageRoutes from "./routes/message.routes.js";
 import inviteRoutes from "./routes/invite.routes.js";
+import summaryRoutes from "./routes/summary.routes.js";
 
 const app = express();
 
@@ -31,6 +32,7 @@ app.use("/api/auth", authRoutes);
 app.use("/api/rooms", roomRoutes);
 app.use("/api/messages", messageRoutes);
 app.use("/api/invites", inviteRoutes);
+app.use("/api/summary", summaryRoutes);
 
 /* routes */
 app.get("/health", (_, res) => {
