@@ -1,51 +1,98 @@
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import { useState } from "react";
 import toast from "react-hot-toast";
+import { registerUser } from "../../services/auth.service";
+import AuthLayout from "../../components/layout/AuthLayout";
+import { User, Mail, Lock } from "lucide-react";
 
 export default function Signup() {
-  const handleSignup = (e) => {
+  const navigate = useNavigate();
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    toast.success("Account created successfully");
+    setLoading(true);
+
+    try {
+      await registerUser({ name, email, password });
+      toast.success("Account created. Please login.");
+      navigate("/login");
+    } catch (err) {
+      toast.error(err?.response?.data?.message || "Signup failed");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-600 to-purple-700 flex items-center justify-center">
-      <div className="w-full max-w-md bg-white rounded-2xl shadow-2xl p-8">
-        <h1 className="text-3xl font-bold text-center mb-6">Create Account</h1>
+    <AuthLayout>
+      <h1 className="text-2xl font-bold text-center mb-6">Create Account</h1>
 
-        <form onSubmit={handleSignup} className="space-y-4">
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <div className="relative">
+          <User
+            className="absolute left-3 top-3.5 text-neutral-400"
+            size={18}
+          />
           <input
-            placeholder="Name"
             required
-            className="w-full rounded-lg border px-4 py-3"
+            placeholder="Full name"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            className="w-full pl-10 pr-4 py-3 rounded-lg border focus:ring-2 focus:ring-indigo-600"
+          />
+        </div>
+
+        <div className="relative">
+          <Mail
+            className="absolute left-3 top-3.5 text-neutral-400"
+            size={18}
           />
           <input
             type="email"
-            placeholder="Email"
             required
-            className="w-full rounded-lg border px-4 py-3"
+            placeholder="Email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            className="w-full pl-10 pr-4 py-3 rounded-lg border focus:ring-2 focus:ring-indigo-600"
+          />
+        </div>
+
+        <div className="relative">
+          <Lock
+            className="absolute left-3 top-3.5 text-neutral-400"
+            size={18}
           />
           <input
             type="password"
-            placeholder="Password"
             required
-            className="w-full rounded-lg border px-4 py-3"
+            placeholder="Password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            className="w-full pl-10 pr-4 py-3 rounded-lg border focus:ring-2 focus:ring-indigo-600"
           />
+        </div>
 
-          <button className="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-3 rounded-lg font-semibold">
-            Sign Up
-          </button>
-        </form>
+        <button
+          disabled={loading}
+          className="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-3 rounded-lg font-semibold"
+        >
+          {loading ? "Creating..." : "Sign Up"}
+        </button>
+      </form>
 
-        <p className="text-center text-sm text-gray-600 mt-6">
-          Already have an account?{" "}
-          <Link
-            to="/login"
-            className="text-indigo-600 font-medium hover:underline"
-          >
-            Login
-          </Link>
-        </p>
-      </div>
-    </div>
+      <p className="text-center text-sm text-neutral-600 mt-6">
+        Already have an account?{" "}
+        <Link
+          to="/login"
+          className="text-indigo-600 font-medium hover:underline"
+        >
+          Login
+        </Link>
+      </p>
+    </AuthLayout>
   );
 }

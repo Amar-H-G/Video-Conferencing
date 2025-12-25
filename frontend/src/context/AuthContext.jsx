@@ -1,52 +1,48 @@
 import { createContext, useContext, useEffect, useState } from "react";
-import { loginApi } from "../services/auth.service";
+import { getMe } from "../services/auth.service";
 
 const AuthContext = createContext(null);
 
-export function AuthProvider({ children }) {
+export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
-  const [token, setToken] = useState(
-    () => localStorage.getItem("accessToken") || null
-  );
   const [loading, setLoading] = useState(true);
 
+  // Restore session on refresh
   useEffect(() => {
-    if (token) {
-      setUser({});
+    const token = localStorage.getItem("accessToken");
+    if (!token) {
+      setLoading(false);
+      return;
     }
-    setLoading(false);
-  }, [token]);
 
-  const login = async (email, password) => {
-    const res = await loginApi(email, password);
+    getMe()
+      .then((res) => {
+        setUser(res.user);
+      })
+      .catch(() => {
+        localStorage.removeItem("accessToken");
+        setUser(null);
+      })
+      .finally(() => setLoading(false));
+  }, []);
 
-    localStorage.setItem("accessToken", res.accessToken);
-    setToken(res.accessToken);
-    setUser(res.user);
-
-    return res.user;
+  const login = (token, userData) => {
+    localStorage.setItem("accessToken", token);
+    setUser(userData);
   };
 
   const logout = () => {
     localStorage.removeItem("accessToken");
-    setToken(null);
     setUser(null);
   };
 
   return (
     <AuthContext.Provider
-      value={{
-        user,
-        token,
-        loading,
-        isAuthenticated: !!token,
-        login,
-        logout,
-      }}
+      value={{ user, loading, login, logout, isAuth: !!user }}
     >
       {children}
     </AuthContext.Provider>
   );
-}
+};
 
-export const useAuth = () => useContext(AuthContext);
+export const useAuthContext = () => useContext(AuthContext);
